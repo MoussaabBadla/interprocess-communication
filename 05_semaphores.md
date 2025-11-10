@@ -1051,18 +1051,18 @@ int main() {
 ```mermaid
 graph TB
     subgraph "Kernel IPC Namespace"
-        NAMESPACE[struct ipc_namespace]
-        SEMIDS[sem_ids<br/>Global semaphore registry]
+        NAMESPACE["struct ipc_namespace"]
+        SEMIDS["sem_ids - Global registry"]
     end
 
     subgraph "Semaphore Set ID: 12345"
-        SEMARRAY[struct sem_array]
-        PERM[kern_ipc_perm<br/>key, uid, gid, mode]
-        SEM0[sem[0]<br/>semval=3<br/>sempid=1234]
-        SEM1[sem[1]<br/>semval=0<br/>sempid=5678]
-        SEM2[sem[2]<br/>semval=5<br/>sempid=9012]
-        QUEUE0[pending_alter[0]]
-        QUEUE1[pending_const[1]]
+        SEMARRAY["struct sem_array"]
+        PERM["kern_ipc_perm - Permissions"]
+        SEM0["sem 0 - val=3 pid=1234"]
+        SEM1["sem 1 - val=0 pid=5678"]
+        SEM2["sem 2 - val=5 pid=9012"]
+        QUEUE0["pending_alter 0"]
+        QUEUE1["pending_const 1"]
     end
 
     NAMESPACE --> SEMIDS
@@ -1680,18 +1680,18 @@ PostgreSQL uses System V semaphores for its connection limit semaphore array.
 ```mermaid
 graph TB
     subgraph "PostgreSQL Process Model"
-        POSTMASTER[Postmaster<br/>Main Process]
-        BACKEND1[Backend 1<br/>Client Connection]
-        BACKEND2[Backend 2<br/>Client Connection]
-        BACKEND3[Backend 3<br/>Client Connection]
+        POSTMASTER["Postmaster - Main Process"]
+        BACKEND1["Backend 1 - Client Connection"]
+        BACKEND2["Backend 2 - Client Connection"]
+        BACKEND3["Backend 3 - Client Connection"]
     end
 
     subgraph "System V Semaphore Array"
-        SEMSET[Semaphore Set<br/>semmni: 17]
-        SEM0[sem[0]: ProcStructLock]
-        SEM1[sem[1]: WALInsertLock1]
-        SEM2[sem[2]: WALInsertLock2]
-        SEM16[sem[16]: ProcArrayLock]
+        SEMSET["Semaphore Set - semmni: 17"]
+        SEM0["sem 0: ProcStructLock"]
+        SEM1["sem 1: WALInsertLock1"]
+        SEM2["sem 2: WALInsertLock2"]
+        SEM16["sem 16: ProcArrayLock"]
     end
 
     POSTMASTER -->|Creates| SEMSET
@@ -1746,21 +1746,21 @@ Apache uses POSIX semaphores for thread pool synchronization in the worker MPM (
 ```mermaid
 graph TB
     subgraph "Apache Worker MPM"
-        PARENT[Parent Process]
-        CHILD1[Child 1<br/>Thread Pool]
-        CHILD2[Child 2<br/>Thread Pool]
+        PARENT["Parent Process"]
+        CHILD1["Child 1 - Thread Pool"]
+        CHILD2["Child 2 - Thread Pool"]
     end
 
     subgraph "Thread Pool per Child"
-        T1[Worker Thread 1]
-        T2[Worker Thread 2]
-        T3[Worker Thread 3]
-        T4[Worker Thread 4]
+        T1["Worker Thread 1"]
+        T2["Worker Thread 2"]
+        T3["Worker Thread 3"]
+        T4["Worker Thread 4"]
     end
 
     subgraph "Synchronization"
-        ACCEPT_SEM[Accept Semaphore<br/>One thread accepts]
-        QUEUE_SEM[Queue Semaphore<br/>Task queue access]
+        ACCEPT_SEM["Accept Semaphore - One thread accepts"]
+        QUEUE_SEM["Queue Semaphore - Task queue access"]
     end
 
     PARENT --> CHILD1
@@ -1826,20 +1826,20 @@ Chromium uses unnamed POSIX semaphores in shared memory for renderer process syn
 ```mermaid
 graph TB
     subgraph "Browser Process"
-        BROWSER[Main Browser Process]
-        UI[UI Thread]
-        IO[I/O Thread]
+        BROWSER["Main Browser Process"]
+        UI["UI Thread"]
+        IO["I/O Thread"]
     end
 
     subgraph "Renderer Processes"
-        RENDER1[Renderer 1<br/>Tab 1]
-        RENDER2[Renderer 2<br/>Tab 2]
-        GPU[GPU Process]
+        RENDER1["Renderer 1 - Tab 1"]
+        RENDER2["Renderer 2 - Tab 2"]
+        GPU["GPU Process"]
     end
 
     subgraph "Shared Memory Regions"
-        SHM1[SharedMemoryRegion 1<br/>Bitmap + Semaphore]
-        SHM2[SharedMemoryRegion 2<br/>Video Frame + Semaphore]
+        SHM1["SharedMemoryRegion 1 - Bitmap + Semaphore"]
+        SHM2["SharedMemoryRegion 2 - Video Frame + Semaphore"]
     end
 
     BROWSER <--> RENDER1
@@ -1915,15 +1915,15 @@ JACK uses POSIX semaphores for real-time thread synchronization with low latency
 ```mermaid
 graph TB
     subgraph "JACK Server"
-        DRIVER[Audio Driver Thread<br/>SCHED_FIFO priority 70]
-        CLIENT1[Client Thread 1<br/>Audio Generator]
-        CLIENT2[Client Thread 2<br/>Audio Effects]
-        CLIENT3[Client Thread 3<br/>Audio Sink]
+        DRIVER["Audio Driver Thread - SCHED_FIFO priority 70"]
+        CLIENT1["Client Thread 1 - Audio Generator"]
+        CLIENT2["Client Thread 2 - Audio Effects"]
+        CLIENT3["Client Thread 3 - Audio Sink"]
     end
 
     subgraph "Synchronization Semaphores"
-        SEM_START[frame_start_sem<br/>Driver→Clients]
-        SEM_DONE[frame_done_sem<br/>Clients→Driver]
+        SEM_START["frame_start_sem - Driver to Clients"]
+        SEM_DONE["frame_done_sem - Clients to Driver"]
     end
 
     DRIVER -->|sem_post| SEM_START
@@ -2362,6 +2362,434 @@ void customer_thread() {
 ---
 
 ## Advanced Theoretical Concepts
+
+### Atomic Operations
+
+**Definition:** An atomic operation is an indivisible operation that executes as a single, uninterruptible unit. Either the entire operation completes successfully, or it has no effect at all.
+
+#### Why Atomic Operations Are Critical
+
+Without atomicity, concurrent operations can produce incorrect results:
+
+```mermaid
+sequenceDiagram
+    participant CPU1 as CPU 1
+    participant Mem as Memory (counter=5)
+    participant CPU2 as CPU 2
+
+    Note over CPU1,CPU2: NON-ATOMIC INCREMENT (RACE CONDITION)
+
+    CPU1->>Mem: Read counter (5)
+    CPU2->>Mem: Read counter (5)
+    CPU1->>CPU1: Add 1 (5+1=6)
+    CPU2->>CPU2: Add 1 (5+1=6)
+    CPU1->>Mem: Write 6
+    CPU2->>Mem: Write 6
+
+    Note over Mem: Final value: 6 (WRONG! Should be 7)<br/>One increment was lost!
+```
+
+**Race Condition Example:**
+
+```c
+// Non-atomic increment
+int counter = 0;
+
+// Thread 1             // Thread 2
+counter++;              counter++;
+
+// Assembly (x86):
+// mov eax, [counter]   mov eax, [counter]   # Both read 0
+// inc eax              inc eax              # Both compute 1
+// mov [counter], eax   mov [counter], eax   # Both write 1
+
+// Result: counter = 1 (should be 2!)
+```
+
+#### Atomic Operations in Hardware
+
+Modern CPUs provide atomic instructions:
+
+**x86/x64:**
+```assembly
+; Atomic increment
+lock inc dword [counter]
+
+; Atomic compare-and-swap (CAS)
+lock cmpxchg [location], new_value
+
+; Atomic exchange
+lock xchg [location], new_value
+```
+
+**ARM:**
+```assembly
+; Load-Exclusive / Store-Exclusive
+LDREX r1, [r0]      ; Load exclusive
+ADD r1, r1, #1      ; Increment
+STREX r2, r1, [r0]  ; Store exclusive (fails if interrupted)
+CMP r2, #0          ; Check if succeeded
+BNE retry           ; Retry if failed
+```
+
+#### C11/C++ Atomic Operations
+
+```c
+#include <stdatomic.h>
+
+atomic_int counter = 0;
+
+// Atomic increment
+atomic_fetch_add(&counter, 1);
+
+// Atomic compare-and-swap
+int expected = 5;
+int desired = 10;
+atomic_compare_exchange_strong(&counter, &expected, desired);
+
+// Memory ordering options:
+// - memory_order_relaxed: No synchronization
+// - memory_order_acquire: Acquire barrier
+// - memory_order_release: Release barrier
+// - memory_order_seq_cst: Sequential consistency (default)
+```
+
+#### How Semaphores Use Atomic Operations
+
+```mermaid
+flowchart TB
+    START[sem_wait called]
+
+    START --> ATOMIC1{Atomic: Load counter}
+    ATOMIC1 --> CHECK{Value > 0?}
+
+    CHECK -->|No| SYSCALL[Syscall: futex WAIT<br/>Sleep in kernel]
+    CHECK -->|Yes| ATOMIC2{Atomic: CAS<br/>counter-1}
+
+    ATOMIC2 -->|Success| SUCCESS[Return: acquired]
+    ATOMIC2 -->|Failed<br/>Another thread changed it| START
+
+    SYSCALL --> WAKEUP[Woken by sem_post]
+    WAKEUP --> START
+
+    style ATOMIC1 fill:#f96
+    style ATOMIC2 fill:#f96
+    style SUCCESS fill:#9f9
+```
+
+**Futex Implementation Using Atomics:**
+
+```c
+// Simplified futex-based semaphore
+typedef struct {
+    atomic_uint value;  // Atomic counter
+} sem_t;
+
+int sem_wait(sem_t *sem) {
+    unsigned int old_val, new_val;
+
+    // Fast path: atomic decrement if > 0
+    do {
+        old_val = atomic_load_explicit(&sem->value, memory_order_acquire);
+
+        if (old_val == 0) {
+            // Slow path: syscall to kernel
+            return futex_wait(&sem->value, 0);
+        }
+
+        new_val = old_val - 1;
+
+        // Atomic compare-and-swap
+        // If sem->value still equals old_val, set it to new_val
+    } while (!atomic_compare_exchange_weak(&sem->value, &old_val, new_val));
+
+    return 0;  // Success
+}
+
+int sem_post(sem_t *sem) {
+    unsigned int old_val;
+
+    // Atomic increment
+    old_val = atomic_fetch_add_explicit(&sem->value, 1, memory_order_release);
+
+    // If old value was 0, wake a waiter
+    if (old_val == 0) {
+        futex_wake(&sem->value, 1);
+    }
+
+    return 0;
+}
+```
+
+#### Compare-And-Swap (CAS) Explained
+
+**CAS Pseudocode:**
+```
+CAS(location, expected, desired):
+    atomic {
+        current = *location
+        if current == expected:
+            *location = desired
+            return true  // Success
+        else:
+            expected = current  // Update expected
+            return false  // Retry needed
+    }
+```
+
+**Visualization:**
+
+```mermaid
+sequenceDiagram
+    participant T1 as Thread 1
+    participant Mem as Memory
+    participant T2 as Thread 2
+
+    Note over Mem: Initial value = 5
+
+    T1->>Mem: CAS(location, expect=5, new=6)
+    Mem->>Mem: Compare: value==5? YES
+    Mem->>Mem: Atomically set to 6
+    Mem->>T1: Success (true)
+
+    Note over Mem: Value now = 6
+
+    T2->>Mem: CAS(location, expect=5, new=7)
+    Mem->>Mem: Compare: value==5? NO (it's 6)
+    Mem->>T2: Failure (false), actual value = 6
+
+    Note over T2: Thread 2 must retry with expect=6
+```
+
+#### ABA Problem with CAS
+
+**Problem:** CAS checks if value equals expected, but can't detect if value changed from A → B → A.
+
+```mermaid
+sequenceDiagram
+    participant T1 as Thread 1 (slow)
+    participant Stack as Stack Top
+    participant T2 as Thread 2 (fast)
+    participant T3 as Thread 3 (fast)
+
+    Note over Stack: Top = Node A
+
+    T1->>Stack: Read top (A)
+    Note over T1: Preempted...
+
+    T2->>Stack: Pop A
+    Note over Stack: Top = Node B
+
+    T3->>Stack: Pop B
+    Note over Stack: Top = NULL
+
+    T3->>Stack: Push A (reusing memory)
+    Note over Stack: Top = Node A (same address!)
+
+    T1->>T1: Resume
+    T1->>Stack: CAS(expect=A, new=A.next)
+    Note over Stack: CAS succeeds! (A==A)
+    Note over T1: But A.next is STALE!<br/>MEMORY CORRUPTION
+```
+
+**Solution: Tagged Pointers or Version Numbers:**
+
+```c
+typedef struct {
+    void *ptr;
+    uintptr_t version;  // Incremented on each modification
+} tagged_ptr_t;
+
+atomic_tagged_ptr_t stack_top;
+
+void push(void *item) {
+    tagged_ptr_t old_top, new_top;
+    do {
+        old_top = atomic_load(&stack_top);
+        new_top.ptr = item;
+        new_top.version = old_top.version + 1;
+        item->next = old_top.ptr;
+    } while (!atomic_compare_exchange_weak(&stack_top, &old_top, new_top));
+}
+```
+
+#### Memory Ordering and Barriers
+
+**Problem:** Modern CPUs reorder instructions for performance.
+
+```c
+// Thread 1
+data = 42;           // Write data
+atomic_store(&ready, 1);  // Signal ready
+
+// Thread 2
+while (!atomic_load(&ready));  // Wait for ready
+print(data);         // Read data
+```
+
+Without proper ordering, Thread 2 might see `ready=1` but `data=0`!
+
+**Memory Barriers:**
+
+```c
+// Acquire barrier: Prevents later loads/stores from moving before
+atomic_load_explicit(&ready, memory_order_acquire);
+
+// Release barrier: Prevents earlier loads/stores from moving after
+atomic_store_explicit(&ready, 1, memory_order_release);
+
+// Full barrier: Both acquire and release
+atomic_thread_fence(memory_order_seq_cst);
+```
+
+```mermaid
+graph TB
+    subgraph "Without Barriers (WRONG)"
+        W1[Write data=42]
+        W2[Write ready=1]
+        R1[Read ready]
+        R2[Read data]
+
+        W2 -.->|Reordered!| W1
+        R1 -.->|Reordered!| R2
+    end
+
+    subgraph "With Barriers (CORRECT)"
+        W3[Write data=42]
+        W4[RELEASE barrier]
+        W5[Write ready=1]
+        R3[Read ready]
+        R4[ACQUIRE barrier]
+        R5[Read data]
+
+        W3 --> W4
+        W4 --> W5
+        R3 --> R4
+        R4 --> R5
+    end
+
+    style W1 fill:#fcc
+    style W2 fill:#fcc
+    style W3 fill:#9f9
+    style W5 fill:#9f9
+```
+
+#### Lock-Free vs Wait-Free
+
+**Lock-Free:** At least one thread makes progress (but individual threads may starve).
+
+```c
+// Lock-free stack
+void push(int value) {
+    node_t *new_node = malloc(sizeof(node_t));
+    new_node->value = value;
+
+    do {
+        new_node->next = atomic_load(&stack_top);
+    } while (!atomic_compare_exchange_weak(&stack_top, &new_node->next, new_node));
+    // Retries on contention, but system makes progress
+}
+```
+
+**Wait-Free:** Every thread is guaranteed to complete in a bounded number of steps.
+
+```c
+// Wait-free read (always completes in one step)
+int read_counter() {
+    return atomic_load(&counter);  // Never retries
+}
+```
+
+#### Performance Comparison
+
+```c
+// Benchmark: 10 million increments with 4 threads
+
+// 1. Mutex/Semaphore (slowest)
+for (int i = 0; i < 10000000; i++) {
+    sem_wait(&sem);
+    counter++;
+    sem_post(&sem);
+}
+// Time: ~800ms (context switches)
+
+// 2. Spinlock (fast for short critical sections)
+for (int i = 0; i < 10000000; i++) {
+    while (atomic_flag_test_and_set(&lock));  // Busy-wait
+    counter++;
+    atomic_flag_clear(&lock);
+}
+// Time: ~200ms (no context switch, but wastes CPU)
+
+// 3. Atomic operations (fastest)
+for (int i = 0; i < 10000000; i++) {
+    atomic_fetch_add(&counter, 1);  // Lock-free
+}
+// Time: ~50ms (no locks, no context switches)
+```
+
+#### Atomic Operations in Kernel
+
+**Spinlock Implementation:**
+
+```c
+// kernel/locking/spinlock.c
+typedef struct {
+    atomic_int lock;
+} spinlock_t;
+
+void spin_lock(spinlock_t *lock) {
+    while (atomic_exchange(&lock->lock, 1) != 0) {
+        // Busy-wait (spin)
+        while (atomic_load(&lock->lock) != 0) {
+            cpu_relax();  // Hint to CPU (pause instruction on x86)
+        }
+    }
+}
+
+void spin_unlock(spinlock_t *lock) {
+    atomic_store(&lock->lock, 0);
+}
+```
+
+**Futex Kernel Implementation:**
+
+```c
+// kernel/futex.c
+static int futex_wait(u32 __user *uaddr, u32 val) {
+    u32 current_val;
+
+    // Atomic check: has value changed?
+    if (get_user(current_val, uaddr))
+        return -EFAULT;
+
+    if (current_val != val)
+        return -EWOULDBLOCK;  // Value changed, don't sleep
+
+    // Value still matches, sleep
+    queue_me(...);
+    schedule();
+
+    return 0;
+}
+```
+
+#### Summary: Why Atomicity Matters
+
+✅ **Prevents race conditions** - Operations complete without interruption
+✅ **Enables lock-free programming** - Higher performance than locks
+✅ **Foundation for synchronization** - Semaphores, mutexes, spinlocks all use atomics
+✅ **Hardware support** - Modern CPUs provide efficient atomic instructions
+
+⚠️ **Challenges:**
+- ABA problem
+- Memory ordering complexity
+- Architecture-specific behavior
+- Difficult to debug
+
+**Key Takeaway:** Atomic operations are the building blocks of all synchronization primitives, including semaphores. Understanding atomics is essential for understanding how semaphores achieve thread-safe operations without race conditions.
+
+---
 
 ### Semaphore Invariants
 
