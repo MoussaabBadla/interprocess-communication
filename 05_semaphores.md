@@ -1,4 +1,4 @@
-# Semaphores - Complete Theoretical Guide
+# Semaphores 
 
 ## Table of Contents
 1. [Introduction](#introduction)
