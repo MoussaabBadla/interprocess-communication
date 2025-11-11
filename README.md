@@ -28,7 +28,6 @@ This comprehensive guide covers all major IPC mechanisms in UNIX/Linux systems, 
 |--------|------|---------|
 | 08 | [08_comparison.md](08_comparison.md) | **Comparison & Selection** | Performance analysis, decision trees, benchmarks |
 | 09 | [ipc_crash_course.md](ipc_crash_course.md) | **Quick Reference** | Summary with references to detailed guides |
-| 10 | [explanation.md](explanation.md) | **Signal Example** | Working signal-based IPC program |
 
 
 ---
