@@ -1,4 +1,4 @@
-# Sockets - Complete Theoretical Guide
+# Sockets 
 
 ## Table of Contents
 1. [Introduction](#introduction)
