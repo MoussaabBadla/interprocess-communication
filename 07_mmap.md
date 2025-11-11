@@ -1,4 +1,4 @@
-# Memory-Mapped Files (mmap) - Complete Guide
+# Memory-Mapped Files (mmap) 
 
 ## Table of Contents
 1. [Introduction](#introduction)
